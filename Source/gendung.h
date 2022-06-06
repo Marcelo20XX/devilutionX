@@ -316,14 +316,13 @@ struct Miniset {
 		return true;
 	}
 
-	void place(Point position, unsigned char extraFlags = 0) const
+	void place(Point position) const
 	{
 		for (int y = 0; y < size.height; y++) {
 			for (int x = 0; x < size.width; x++) {
 				if (replace[y][x] == 0)
 					continue;
 				dungeon[x + position.x][y + position.y] = replace[y][x];
-				dflags[x + position.x][y + position.y] |= extraFlags;
 			}
 		}
 	}

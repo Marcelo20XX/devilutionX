@@ -1647,6 +1647,9 @@ void ApplyShadowsPatterns()
 
 bool PlaceMiniSet(const Miniset &miniset, int tmin, int tmax, int cx, int cy, bool setview)
 {
+	int sx;
+	int sy;
+
 	int sw = miniset.size.width;
 	int sh = miniset.size.height;
 
@@ -1655,15 +1658,11 @@ bool PlaceMiniSet(const Miniset &miniset, int tmin, int tmax, int cx, int cy, bo
 		numt = GenerateRnd(tmax - tmin) + tmin;
 	}
 
-	int sx = 0;
-	int sy = 0;
 	for (int i = 0; i < numt; i++) {
 		sx = GenerateRnd(DMAXX - sw);
 		sy = GenerateRnd(DMAXY - sh);
 		bool abort = false;
-		int bailcnt;
-
-		for (bailcnt = 0; !abort && bailcnt < 200; bailcnt++) {
+		for (int bailcnt = 0; !abort;) {
 			abort = true;
 			if (sx >= nSx1 && sx <= nSx2 && sy >= nSy1 && sy <= nSy2) {
 				abort = false;
@@ -1691,10 +1690,11 @@ bool PlaceMiniSet(const Miniset &miniset, int tmin, int tmax, int cx, int cy, bo
 						sy = 0;
 					}
 				}
+				bailcnt++;
+				if (bailcnt >= 200) {
+					return false;
+				}
 			}
-		}
-		if (bailcnt >= 200) {
-			return false;
 		}
 
 		miniset.place({ sx, sy });

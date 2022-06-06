@@ -1682,6 +1682,9 @@ void PoolFix()
 
 bool PlaceMiniSet(const BYTE *miniset, int tmin, int tmax, int cx, int cy, bool setview)
 {
+	int sx;
+	int sy;
+
 	int sw = miniset[0];
 	int sh = miniset[1];
 
@@ -1690,16 +1693,11 @@ bool PlaceMiniSet(const BYTE *miniset, int tmin, int tmax, int cx, int cy, bool 
 		numt = GenerateRnd(tmax - tmin) + tmin;
 	}
 
-	int sx = 0;
-	int sy = 0;
 	for (int i = 0; i < numt; i++) {
 		sx = GenerateRnd(DMAXX - sw);
 		sy = GenerateRnd(DMAXY - sh);
 		bool abort = false;
-		int bailcnt;
-
-		for (bailcnt = 0; !abort && bailcnt < 200;) {
-			bailcnt++;
+		for (int bailcnt = 0; !abort;) {
 			abort = true;
 			if (cx != -1 && sx >= cx - sw && sx <= cx + 12) {
 				sx = GenerateRnd(DMAXX - sw);
@@ -1711,13 +1709,14 @@ bool PlaceMiniSet(const BYTE *miniset, int tmin, int tmax, int cx, int cy, bool 
 				sy = GenerateRnd(DMAXY - sh);
 				abort = false;
 			}
+
 			int ii = 2;
 
 			for (int yy = 0; yy < sh && abort; yy++) {
 				for (int xx = 0; xx < sw && abort; xx++) {
-					if (miniset[ii] != 0 && dungeon[xx + sx][yy + sy] != miniset[ii])
+					if (miniset[ii] != 0 && dungeon[xx + sx][sy + yy] != miniset[ii])
 						abort = false;
-					if (dflags[xx + sx][yy + sy] != 0)
+					if (dflags[xx + sx][sy + yy] != 0)
 						abort = false;
 					ii++;
 				}
@@ -1732,17 +1731,19 @@ bool PlaceMiniSet(const BYTE *miniset, int tmin, int tmax, int cx, int cy, bool 
 						sy = 0;
 					}
 				}
+				bailcnt++;
+				if (bailcnt >= 200) {
+					return false;
+				}
 			}
 		}
-		if (bailcnt >= 200) {
-			return false;
-		}
+
 		int ii = sw * sh + 2;
 
 		for (int yy = 0; yy < sh; yy++) {
 			for (int xx = 0; xx < sw; xx++) {
 				if (miniset[ii] != 0) {
-					dungeon[xx + sx][yy + sy] = miniset[ii];
+					dungeon[xx + sx][sy + yy] = miniset[ii];
 				}
 				ii++;
 			}

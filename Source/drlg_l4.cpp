@@ -28,10 +28,10 @@ namespace {
 bool hallok[20];
 int l4holdx;
 int l4holdy;
-int SP4x1;
-int SP4y1;
-int SP4x2;
-int SP4y2;
+int nSx1;
+int nSy1;
+int nSx2;
+int nSy2;
 BYTE L4dungeon[80][80];
 BYTE dung[20][20];
 // int dword_52A4DC;
@@ -185,10 +185,9 @@ bool PlaceMiniSet(const Miniset &miniset, int tmin, int tmax, int cx, int cy, bo
 		sx = GenerateRnd(DMAXX - sw);
 		sy = GenerateRnd(DMAXY - sh);
 		bool abort = false;
-		int bailcnt;
-		for (bailcnt = 0; !abort && bailcnt < 200; bailcnt++) {
+		for (int bailcnt = 0; !abort;) {
 			abort = true;
-			if (sx >= SP4x1 && sx <= SP4x2 && sy >= SP4y1 && sy <= SP4y2) {
+			if (sx >= nSx1 && sx <= nSx2 && sy >= nSy1 && sy <= nSy2) {
 				abort = false;
 			}
 			if (cx != -1 && sx >= cx - sw && sx <= cx + 12) {
@@ -214,18 +213,20 @@ bool PlaceMiniSet(const Miniset &miniset, int tmin, int tmax, int cx, int cy, bo
 						sy = 0;
 					}
 				}
+				bailcnt++;
+				if (bailcnt >= 200) {
+					return false;
+				}
 			}
 		}
-		if (bailcnt >= 200) {
-			return false;
-		}
 
-		miniset.place({ sx, sy }, 8);
+		miniset.place({ sx, sy });
 	}
 
 	if (currlevel == 15 && Quests[Q_BETRAYER]._qactive >= QUEST_ACTIVE) { /// Lazarus staff skip bug fixed
 		Quests[Q_BETRAYER].position = { sx + 1, sy + 1 };
 	}
+
 	if (setview) {
 		ViewPosition = Point { 21, 22 } + Displacement { sx, sy } * 2;
 	}
@@ -402,15 +403,15 @@ void FirstRoom()
 		l4holdy = y;
 	}
 	if (Quests[Q_WARLORD].IsAvailable() || (currlevel == Quests[Q_BETRAYER]._qlevel && gbIsMultiplayer)) {
-		SP4x1 = x + 1;
-		SP4y1 = y + 1;
-		SP4x2 = SP4x1 + w;
-		SP4y2 = SP4y1 + h;
+		nSx1 = x + 1;
+		nSy1 = y + 1;
+		nSx2 = nSx1 + w;
+		nSy2 = nSy1 + h;
 	} else {
-		SP4x1 = 0;
-		SP4y1 = 0;
-		SP4x2 = 0;
-		SP4y2 = 0;
+		nSx1 = 0;
+		nSy1 = 0;
+		nSx2 = 0;
+		nSy2 = 0;
 	}
 
 	MapRoom(x, y, w, h);
@@ -1346,8 +1347,8 @@ void GenerateLevel(lvl_entry entry)
 			SaveQuads();
 		}
 		if (Quests[Q_WARLORD].IsAvailable() || (currlevel == Quests[Q_BETRAYER]._qlevel && gbIsMultiplayer)) {
-			for (int spi = SP4x1; spi < SP4x2; spi++) {
-				for (int spj = SP4y1; spj < SP4y2; spj++) {
+			for (int spi = nSx1; spi < nSx2; spi++) {
+				for (int spj = nSy1; spj < nSy2; spj++) {
 					dflags[spi][spj] = 1;
 				}
 			}
@@ -1356,7 +1357,7 @@ void GenerateLevel(lvl_entry entry)
 		FloodTransparencyValues(6);
 		FixTransparency();
 		if (setloadflag) {
-			SetSetPiecesRoom(SP4x1, SP4y1);
+			SetSetPiecesRoom(nSx1, nSy1);
 		}
 		if (currlevel == 16) {
 			LoadDiabQuads(true);
@@ -1384,7 +1385,7 @@ void GenerateLevel(lvl_entry entry)
 		}
 	}
 
-	DRLG_CheckQuests(SP4x1, SP4y1);
+	DRLG_CheckQuests(nSx1, nSy1);
 
 	if (currlevel == 15) {
 		for (int j = 0; j < DMAXY; j++) {

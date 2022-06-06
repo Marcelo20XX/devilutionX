@@ -24,7 +24,7 @@ namespace {
 
 /** Represents a tile ID map of twice the size, repeating each tile of the original map in blocks of 4. */
 BYTE L5dungeon[80][80];
-BYTE L5dflags[DMAXX][DMAXY];
+uint8_t L5dflags[DMAXX][DMAXY];
 /** Specifies whether a single player quest DUN has been loaded. */
 bool L5setloadflag;
 /** Specifies whether to generate a horizontal room at position 1 in the Cathedral. */
@@ -502,6 +502,41 @@ BYTE CornerstoneRoomPattern[27] = {
  */
 BYTE L5ConvTbl[16] = { 22, 13, 1, 13, 2, 13, 13, 13, 4, 13, 1, 13, 2, 13, 16, 13 };
 
+enum CatedralTile : uint8_t {
+	// clang-format off
+	VWall          =  1,
+	HWall          =  2,
+	Corner         =  3,
+	DWall          =  4,
+	DArch          =  5,
+	VWallEnd       =  6,
+	HWallEnd       =  7,
+	HArchEnd       =  8,
+	VArchEnd       =  9,
+	HArchVWall     = 10,
+	VArch          = 11,
+	HArch          = 12,
+	Floor          = 13,
+	HWallVArch     = 14,
+	Pilar          = 15,
+	DirtCorner     = 21,
+	VDoor          = 25,
+	HDoor          = 26,
+	HFenceVWall    = 27,
+	HDoorVDoor     = 28,
+	VDoorEnd       = 30,
+	HDoorEnd       = 31,
+	VFence         = 35,
+	HFence         = 36,
+	HWallVFence    = 37,
+	HRrchVDoor     = 40,
+	HWallVDoor     = 41,
+	HDoorVArch     = 42,
+	HDoorVWall     = 43,
+	EntranceStairs = 64,
+	// clang-format on
+};
+
 void InitCryptPieces()
 {
 	for (int j = 0; j < MAXDUNY; j++) {
@@ -517,58 +552,28 @@ void InitCryptPieces()
 
 void PlaceDoor(int x, int y)
 {
-	if ((L5dflags[x][y] & DLRG_PROTECTED) == 0) {
-		BYTE df = L5dflags[x][y] & 0x7F;
-		BYTE c = dungeon[x][y];
-
-		if (df == 1) {
-			if (y != 1 && c == 2)
-				dungeon[x][y] = 26;
-			if (y != 1 && c == 7)
-				dungeon[x][y] = 31;
-			if (y != 1 && c == 14)
-				dungeon[x][y] = 42;
-			if (y != 1 && c == 4)
-				dungeon[x][y] = 43;
-			if (x != 1 && c == 1)
-				dungeon[x][y] = 25;
-			if (x != 1 && c == 10)
-				dungeon[x][y] = 40;
-			if (x != 1 && c == 6)
-				dungeon[x][y] = 30;
-		}
-		if (df == 2) {
-			if (x != 1 && c == 1)
-				dungeon[x][y] = 25;
-			if (x != 1 && c == 6)
-				dungeon[x][y] = 30;
-			if (x != 1 && c == 10)
-				dungeon[x][y] = 40;
-			if (x != 1 && c == 4)
-				dungeon[x][y] = 41;
-			if (y != 1 && c == 2)
-				dungeon[x][y] = 26;
-			if (y != 1 && c == 14)
-				dungeon[x][y] = 42;
-			if (y != 1 && c == 7)
-				dungeon[x][y] = 31;
-		}
-		if (df == 3) {
-			if (x != 1 && y != 1 && c == 4)
-				dungeon[x][y] = 28;
-			if (x != 1 && c == 10)
-				dungeon[x][y] = 40;
-			if (y != 1 && c == 14)
-				dungeon[x][y] = 42;
-			if (y != 1 && c == 2)
-				dungeon[x][y] = 26;
-			if (x != 1 && c == 1)
-				dungeon[x][y] = 25;
-			if (y != 1 && c == 7)
-				dungeon[x][y] = 31;
-			if (x != 1 && c == 6)
-				dungeon[x][y] = 30;
-		}
+	auto tileId = static_cast<CatedralTile>(dungeon[x][y]);
+	if (L5dflags[x][y] == (DLRG_VDOOR | DLRG_HDOOR)) {
+		if (tileId == CatedralTile::DWall)
+			dungeon[x][y] = CatedralTile::HDoorVDoor;
+	} else if (L5dflags[x][y] == DLRG_VDOOR) {
+		if (tileId == CatedralTile::DWall)
+			dungeon[x][y] = CatedralTile::HWallVDoor;
+		else if (tileId == CatedralTile::VWall)
+			dungeon[x][y] = CatedralTile::VDoor;
+		else if (tileId == CatedralTile::VWallEnd)
+			dungeon[x][y] = CatedralTile::VDoorEnd;
+		else if (tileId == CatedralTile::HArchVWall)
+			dungeon[x][y] = CatedralTile::HRrchVDoor;
+	} else if (L5dflags[x][y] == DLRG_HDOOR) {
+		if (tileId == CatedralTile::DWall)
+			dungeon[x][y] = CatedralTile::HDoorVWall;
+		else if (tileId == CatedralTile::HWall)
+			dungeon[x][y] = CatedralTile::HDoor;
+		else if (tileId == CatedralTile::HWallEnd)
+			dungeon[x][y] = CatedralTile::HDoorEnd;
+		else if (tileId == CatedralTile::HWallVArch)
+			dungeon[x][y] = CatedralTile::HDoorVArch;
 	}
 
 	L5dflags[x][y] = DLRG_PROTECTED;
@@ -1009,7 +1014,7 @@ void MapRoom(int x, int y, int width, int height)
 {
 	for (int j = 0; j < height; j++) {
 		for (int i = 0; i < width; i++) {
-			dungeon[x + i][y + j] = 1;
+			dungeon[x + i][y + j] = CatedralTile::VWall;
 		}
 	}
 }
@@ -1113,12 +1118,12 @@ void FirstRoom()
 			ye = 22;
 
 		for (int y = ys; y < ye; y++) {
-			dungeon[17][y] = 1;
-			dungeon[18][y] = 1;
-			dungeon[19][y] = 1;
-			dungeon[20][y] = 1;
-			dungeon[21][y] = 1;
-			dungeon[22][y] = 1;
+			dungeon[17][y] = CatedralTile::VWall;
+			dungeon[18][y] = CatedralTile::VWall;
+			dungeon[19][y] = CatedralTile::VWall;
+			dungeon[20][y] = CatedralTile::VWall;
+			dungeon[21][y] = CatedralTile::VWall;
+			dungeon[22][y] = CatedralTile::VWall;
 		}
 
 		if (VR1)
@@ -1154,12 +1159,12 @@ void FirstRoom()
 			xe = 22;
 
 		for (int x = xs; x < xe; x++) {
-			dungeon[x][17] = 1;
-			dungeon[x][18] = 1;
-			dungeon[x][19] = 1;
-			dungeon[x][20] = 1;
-			dungeon[x][21] = 1;
-			dungeon[x][22] = 1;
+			dungeon[x][17] = CatedralTile::VWall;
+			dungeon[x][18] = CatedralTile::VWall;
+			dungeon[x][19] = CatedralTile::VWall;
+			dungeon[x][20] = CatedralTile::VWall;
+			dungeon[x][21] = CatedralTile::VWall;
+			dungeon[x][22] = CatedralTile::VWall;
 		}
 
 		if (HR1)
@@ -1181,7 +1186,7 @@ int FindArea()
 
 	for (int j = 0; j < DMAXY; j++) {
 		for (int i = 0; i < DMAXX; i++) { // NOLINT(modernize-loop-convert)
-			if (dungeon[i][j] == 1)
+			if (dungeon[i][j] == CatedralTile::VWall)
 				rv++;
 		}
 	}
@@ -1272,37 +1277,35 @@ int VerticalWallOk(int i, int j)
 	return -1;
 }
 
-void HorizontalWall(int i, int j, char p, int dx)
+void HorizontalWall(int i, int j, CatedralTile p, int dx)
 {
-	int8_t dt;
+	CatedralTile dt = CatedralTile::HWall;
 
 	switch (GenerateRnd(4)) {
-	case 0:
-	case 1:
-		dt = 2;
+	case 2: // Add arch
+		dt = CatedralTile::HArch;
+		if (p == CatedralTile::HWall)
+			p = CatedralTile::HArch;
+		else if (p == CatedralTile::DWall)
+			p = CatedralTile::HArchVWall;
 		break;
-	case 2:
-		dt = 12;
-		if (p == 2)
-			p = 12;
-		if (p == 4)
-			p = 10;
+	case 3: // Add Fence
+		dt = CatedralTile::HFence;
+		if (p == CatedralTile::HWall)
+			p = CatedralTile::HFence;
+		else if (p == CatedralTile::DWall)
+			p = CatedralTile::HFenceVWall;
 		break;
-	case 3:
-		dt = 36;
-		if (p == 2)
-			p = 36;
-		if (p == 4)
-			p = 27;
+	default:
 		break;
 	}
 
-	int8_t wt = 26;
+	CatedralTile wt = CatedralTile::HDoor;
 	if (GenerateRnd(6) == 5)
-		wt = 12;
+		wt = CatedralTile::HArch;
 
-	if (dt == 12)
-		wt = 12;
+	if (dt == CatedralTile::HArch)
+		wt = CatedralTile::HArch;
 
 	dungeon[i][j] = p;
 
@@ -1312,45 +1315,43 @@ void HorizontalWall(int i, int j, char p, int dx)
 
 	int xx = GenerateRnd(dx - 1) + 1;
 
-	if (wt == 12) {
+	if (wt == CatedralTile::HArch) {
 		dungeon[i + xx][j] = wt;
 	} else {
-		dungeon[i + xx][j] = 2;
+		dungeon[i + xx][j] = CatedralTile::HWall;
 		L5dflags[i + xx][j] |= DLRG_HDOOR;
 	}
 }
 
-void VerticalWall(int i, int j, char p, int dy)
+void VerticalWall(int i, int j, CatedralTile p, int dy)
 {
-	int8_t dt;
+	CatedralTile dt = CatedralTile::VWall;
 
 	switch (GenerateRnd(4)) {
-	case 0:
-	case 1:
-		dt = 1;
+	case 2: // Add arch
+		dt = CatedralTile::VArch;
+		if (p == CatedralTile::VWall)
+			p = CatedralTile::VArch;
+		else if (p == CatedralTile::DWall)
+			p = CatedralTile::HWallVArch;
 		break;
-	case 2:
-		dt = 11;
-		if (p == 1)
-			p = 11;
-		if (p == 4)
-			p = 14;
+	case 3: // Add Fence
+		dt = CatedralTile::VFence;
+		if (p == CatedralTile::VWall)
+			p = CatedralTile::VFence;
+		else if (p == CatedralTile::DWall)
+			p = CatedralTile::HWallVFence;
 		break;
-	case 3:
-		dt = 35;
-		if (p == 1)
-			p = 35;
-		if (p == 4)
-			p = 37;
+	default:
 		break;
 	}
 
-	int8_t wt = 25;
+	CatedralTile wt = CatedralTile::VDoor;
 	if (GenerateRnd(6) == 5)
-		wt = 11;
+		wt = CatedralTile::VArch;
 
-	if (dt == 11)
-		wt = 11;
+	if (dt == CatedralTile::VArch)
+		wt = CatedralTile::VArch;
 
 	dungeon[i][j] = p;
 
@@ -1360,10 +1361,10 @@ void VerticalWall(int i, int j, char p, int dy)
 
 	int yy = GenerateRnd(dy - 1) + 1;
 
-	if (wt == 11) {
+	if (wt == CatedralTile::VArch) {
 		dungeon[i][j + yy] = wt;
 	} else {
-		dungeon[i][j + yy] = 1;
+		dungeon[i][j + yy] = CatedralTile::VWall;
 		L5dflags[i][j + yy] |= DLRG_VDOOR;
 	}
 }
@@ -1373,46 +1374,46 @@ void AddWall()
 	for (int j = 0; j < DMAXY; j++) {
 		for (int i = 0; i < DMAXX; i++) {
 			if (L5dflags[i][j] == 0) {
-				if (dungeon[i][j] == 3) {
+				if (dungeon[i][j] == CatedralTile::Corner) {
 					AdvanceRndSeed();
 					int x = HorizontalWallOk(i, j);
 					if (x != -1) {
-						HorizontalWall(i, j, 2, x);
+						HorizontalWall(i, j, CatedralTile::HWall, x);
 					}
 				}
-				if (dungeon[i][j] == 3) {
+				if (dungeon[i][j] == CatedralTile::Corner) {
 					AdvanceRndSeed();
 					int y = VerticalWallOk(i, j);
 					if (y != -1) {
-						VerticalWall(i, j, 1, y);
+						VerticalWall(i, j, CatedralTile::VWall, y);
 					}
 				}
-				if (dungeon[i][j] == 6) {
+				if (dungeon[i][j] == CatedralTile::VWallEnd) {
 					AdvanceRndSeed();
 					int x = HorizontalWallOk(i, j);
 					if (x != -1) {
-						HorizontalWall(i, j, 4, x);
+						HorizontalWall(i, j, CatedralTile::DWall, x);
 					}
 				}
-				if (dungeon[i][j] == 7) {
+				if (dungeon[i][j] == CatedralTile::HWallEnd) {
 					AdvanceRndSeed();
 					int y = VerticalWallOk(i, j);
 					if (y != -1) {
-						VerticalWall(i, j, 4, y);
+						VerticalWall(i, j, CatedralTile::DWall, y);
 					}
 				}
-				if (dungeon[i][j] == 2) {
+				if (dungeon[i][j] == CatedralTile::HWall) {
 					AdvanceRndSeed();
 					int x = HorizontalWallOk(i, j);
 					if (x != -1) {
-						HorizontalWall(i, j, 2, x);
+						HorizontalWall(i, j, CatedralTile::HWall, x);
 					}
 				}
-				if (dungeon[i][j] == 1) {
+				if (dungeon[i][j] == CatedralTile::VWall) {
 					AdvanceRndSeed();
 					int y = VerticalWallOk(i, j);
 					if (y != -1) {
-						VerticalWall(i, j, 1, y);
+						VerticalWall(i, j, CatedralTile::VWall, y);
 					}
 				}
 			}
@@ -1423,72 +1424,72 @@ void AddWall()
 void GenerateChamber(int sx, int sy, bool topflag, bool bottomflag, bool leftflag, bool rightflag)
 {
 	if (topflag) {
-		dungeon[sx + 2][sy] = 12;
-		dungeon[sx + 3][sy] = 12;
-		dungeon[sx + 4][sy] = 3;
-		dungeon[sx + 7][sy] = 9;
-		dungeon[sx + 8][sy] = 12;
-		dungeon[sx + 9][sy] = 2;
+		dungeon[sx + 2][sy] = CatedralTile::HArch;
+		dungeon[sx + 3][sy] = CatedralTile::HArch;
+		dungeon[sx + 4][sy] = CatedralTile::Corner;
+		dungeon[sx + 7][sy] = CatedralTile::VArchEnd;
+		dungeon[sx + 8][sy] = CatedralTile::HArch;
+		dungeon[sx + 9][sy] = CatedralTile::HWall;
 	}
 	if (bottomflag) {
 		sy += 11;
-		dungeon[sx + 2][sy] = 10;
-		dungeon[sx + 3][sy] = 12;
-		dungeon[sx + 4][sy] = 8;
-		dungeon[sx + 7][sy] = 5;
-		dungeon[sx + 8][sy] = 12;
-		if (dungeon[sx + 9][sy] != 4) {
-			dungeon[sx + 9][sy] = 21;
+		dungeon[sx + 2][sy] = CatedralTile::HArchVWall;
+		dungeon[sx + 3][sy] = CatedralTile::HArch;
+		dungeon[sx + 4][sy] = CatedralTile::HArchEnd;
+		dungeon[sx + 7][sy] = CatedralTile::DArch;
+		dungeon[sx + 8][sy] = CatedralTile::HArch;
+		if (dungeon[sx + 9][sy] != CatedralTile::DWall) {
+			dungeon[sx + 9][sy] = CatedralTile::DirtCorner;
 		}
 		sy -= 11;
 	}
 	if (leftflag) {
-		dungeon[sx][sy + 2] = 11;
-		dungeon[sx][sy + 3] = 11;
-		dungeon[sx][sy + 4] = 3;
-		dungeon[sx][sy + 7] = 8;
-		dungeon[sx][sy + 8] = 11;
-		dungeon[sx][sy + 9] = 1;
+		dungeon[sx][sy + 2] = CatedralTile::VArch;
+		dungeon[sx][sy + 3] = CatedralTile::VArch;
+		dungeon[sx][sy + 4] = CatedralTile::Corner;
+		dungeon[sx][sy + 7] = CatedralTile::HArchEnd;
+		dungeon[sx][sy + 8] = CatedralTile::VArch;
+		dungeon[sx][sy + 9] = CatedralTile::VWall;
 	}
 	if (rightflag) {
 		sx += 11;
-		dungeon[sx][sy + 2] = 14;
-		dungeon[sx][sy + 3] = 11;
-		dungeon[sx][sy + 4] = 9;
-		dungeon[sx][sy + 7] = 5;
-		dungeon[sx][sy + 8] = 11;
-		if (dungeon[sx][sy + 9] != 4) {
-			dungeon[sx][sy + 9] = 21;
+		dungeon[sx][sy + 2] = CatedralTile::HWallVArch;
+		dungeon[sx][sy + 3] = CatedralTile::VArch;
+		dungeon[sx][sy + 4] = CatedralTile::VArchEnd;
+		dungeon[sx][sy + 7] = CatedralTile::DArch;
+		dungeon[sx][sy + 8] = CatedralTile::VArch;
+		if (dungeon[sx][sy + 9] != CatedralTile::DWall) {
+			dungeon[sx][sy + 9] = CatedralTile::DirtCorner;
 		}
 		sx -= 11;
 	}
 
 	for (int j = 1; j < 11; j++) {
 		for (int i = 1; i < 11; i++) {
-			dungeon[i + sx][j + sy] = 13;
+			dungeon[i + sx][j + sy] = CatedralTile::Floor;
 			L5dflags[i + sx][j + sy] |= DLRG_CHAMBER;
 		}
 	}
 
-	dungeon[sx + 4][sy + 4] = 15;
-	dungeon[sx + 7][sy + 4] = 15;
-	dungeon[sx + 4][sy + 7] = 15;
-	dungeon[sx + 7][sy + 7] = 15;
+	dungeon[sx + 4][sy + 4] = CatedralTile::Pilar;
+	dungeon[sx + 7][sy + 4] = CatedralTile::Pilar;
+	dungeon[sx + 4][sy + 7] = CatedralTile::Pilar;
+	dungeon[sx + 7][sy + 7] = CatedralTile::Pilar;
 }
 
 void GenerateHall(int x1, int y1, int x2, int y2)
 {
 	if (y1 == y2) {
 		for (int i = x1; i < x2; i++) {
-			dungeon[i][y1] = 12;
-			dungeon[i][y1 + 3] = 12;
+			dungeon[i][y1] = CatedralTile::HArch;
+			dungeon[i][y1 + 3] = CatedralTile::HArch;
 		}
 		return;
 	}
 
 	for (int i = y1; i < y2; i++) {
-		dungeon[x1][i] = 11;
-		dungeon[x1 + 3][i] = 11;
+		dungeon[x1][i] = CatedralTile::VArch;
+		dungeon[x1 + 3][i] = CatedralTile::VArch;
 	}
 }
 
@@ -1631,12 +1632,13 @@ void SetCornerRoom(int rx1, int ry1)
 				dungeon[rx1 + i][ry1 + j] = CornerstoneRoomPattern[sp];
 				L5dflags[rx1 + i][ry1 + j] |= DLRG_PROTECTED;
 			} else {
-				dungeon[rx1 + i][ry1 + j] = 13;
+				dungeon[rx1 + i][ry1 + j] = CatedralTile::Floor;
 			}
 			sp++;
 		}
 	}
 }
+
 void Substitution()
 {
 	for (int y = 0; y < DMAXY; y++) {
@@ -1696,7 +1698,7 @@ void SetRoom(int rx1, int ry1)
 				dungeon[rx1 + i][ry1 + j] = tileId;
 				L5dflags[rx1 + i][ry1 + j] |= DLRG_PROTECTED;
 			} else {
-				dungeon[rx1 + i][ry1 + j] = 13;
+				dungeon[rx1 + i][ry1 + j] = CatedralTile::Floor;
 			}
 		}
 	}
@@ -1724,7 +1726,7 @@ void SetCryptRoom(int rx1, int ry1)
 				dungeon[rx1 + i][ry1 + j] = UberRoomPattern[sp];
 				L5dflags[rx1 + i][ry1 + j] |= DLRG_PROTECTED;
 			} else {
-				dungeon[rx1 + i][ry1 + j] = 13;
+				dungeon[rx1 + i][ry1 + j] = CatedralTile::Floor;
 			}
 			sp++;
 		}
@@ -2306,7 +2308,7 @@ void GenerateLevel(lvl_entry entry)
 
 	for (int j = 0; j < DMAXY; j++) {
 		for (int i = 0; i < DMAXX; i++) {
-			if (dungeon[i][j] == 64) {
+			if (dungeon[i][j] == CatedralTile::EntranceStairs) {
 				int xx = 2 * i + 16; /* todo: fix loop */
 				int yy = 2 * j + 16;
 				DRLG_CopyTrans(xx, yy + 1, xx, yy);
@@ -2428,7 +2430,7 @@ void LoadL1Dungeon(const char *path, int vx, int vy)
 				dungeon[i][j] = tileId;
 				L5dflags[i][j] |= DLRG_PROTECTED;
 			} else {
-				dungeon[i][j] = 13;
+				dungeon[i][j] = CatedralTile::Floor;
 			}
 		}
 	}
@@ -2474,7 +2476,7 @@ void LoadPreL1Dungeon(const char *path)
 				dungeon[i][j] = tileId;
 				L5dflags[i][j] |= DLRG_PROTECTED;
 			} else {
-				dungeon[i][j] = 13;
+				dungeon[i][j] = CatedralTile::Floor;
 			}
 		}
 	}

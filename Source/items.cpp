@@ -319,9 +319,18 @@ int premiumlvladd[] = {
 	// clang-format off
 	-1,
 	-1,
+	-1,
+	 0,
+	 0,
 	 0,
 	 0,
 	 1,
+	 1,
+	 1,
+	 1,
+	 2,
+	 2,
+	 2,
 	 2,
 	// clang-format on
 };
@@ -1931,8 +1940,8 @@ bool PremiumItemOk(int i)
 		return false;
 	if (AllItemsList[i].itype == ItemType::Gold)
 		return false;
-	if (!gbIsHellfire && AllItemsList[i].itype == ItemType::Staff)
-		return false;
+	//if (!gbIsHellfire && AllItemsList[i].itype == ItemType::Staff)
+		//return false;
 
 	if (gbIsMultiplayer) {
 		if (AllItemsList[i].iMiscId == IMISC_OILOF)
@@ -1976,7 +1985,7 @@ void SpawnOnePremium(Item &premiumItem, int plvl, int playerId)
 		SetRndSeed(premiumItem._iSeed);
 		int itemType = RndPremiumItem(plvl / 4, plvl) - 1;
 		GetItemAttrs(premiumItem, itemType, plvl);
-		GetItemBonus(premiumItem, plvl / 2, plvl, true, !gbIsHellfire);
+		GetItemBonus(premiumItem, plvl / 2, plvl, true, false);
 
 		if (!gbIsHellfire) {
 			if (premiumItem._iIvalue > 140000) {
@@ -2119,7 +2128,7 @@ void RecreatePremiumItem(Item &item, int plvl, int iseed)
 	SetRndSeed(iseed);
 	int itype = RndPremiumItem(plvl / 4, plvl) - 1;
 	GetItemAttrs(item, itype, plvl);
-	GetItemBonus(item, plvl / 2, plvl, true, !gbIsHellfire);
+	GetItemBonus(item, plvl / 2, plvl, true, false);
 
 	item._iSeed = iseed;
 	item._iCreateInfo = plvl | CF_SMITHPREMIUM;
@@ -2847,7 +2856,7 @@ void CreatePlrItems(int playerId)
 		break;
 
 	case HeroClass::Monk:
-		InitializeItem(player.InvBody[INVLOC_HAND_LEFT], IDI_SHORTSTAFF);
+		InitializeItem(player.InvBody[INVLOC_HAND_LEFT], IDI_SORCERER);
 		GenerateNewSeed(player.InvBody[INVLOC_HAND_LEFT]);
 		InitializeItem(player.SpdList[0], IDI_HEAL);
 		GenerateNewSeed(player.SpdList[0]);
@@ -4076,11 +4085,11 @@ void SpawnSmith(int lvl)
 void SpawnPremium(int pnum)
 {
 	int8_t lvl = Players[pnum]._pLevel;
-	int maxItems = gbIsHellfire ? SMITH_PREMIUM_ITEMS : 6;
+	int maxItems = SMITH_PREMIUM_ITEMS;
 	if (numpremium < maxItems) {
 		for (int i = 0; i < maxItems; i++) {
 			if (premiumitems[i].isEmpty()) {
-				int plvl = premiumlevel + (gbIsHellfire ? premiumLvlAddHellfire[i] : premiumlvladd[i]);
+				int plvl = premiumlevel + premiumlvladd[i];
 				SpawnOnePremium(premiumitems[i], plvl, pnum);
 			}
 		}
@@ -4097,11 +4106,13 @@ void SpawnPremium(int pnum)
 			premiumitems[13] = premiumitems[14];
 			SpawnOnePremium(premiumitems[14], premiumlevel + premiumLvlAddHellfire[14], pnum);
 		} else {
-			// Discard first 2 items and shift next 3
-			std::move(&premiumitems[2], &premiumitems[4] + 1, &premiumitems[0]);
-			SpawnOnePremium(premiumitems[3], premiumlevel + premiumlvladd[3], pnum);
-			premiumitems[4] = premiumitems[5];
-			SpawnOnePremium(premiumitems[5], premiumlevel + premiumlvladd[5], pnum);
+			// Discard first 3 items and shift next 10
+			std::move(&premiumitems[3], &premiumitems[12] + 1, &premiumitems[0]);
+			SpawnOnePremium(premiumitems[10], premiumlevel + premiumlvladd[10], pnum);
+			premiumitems[11] = premiumitems[13];
+			SpawnOnePremium(premiumitems[12], premiumlevel + premiumlvladd[12], pnum);
+			premiumitems[13] = premiumitems[14];
+			SpawnOnePremium(premiumitems[14], premiumlevel + premiumlvladd[14], pnum);
 		}
 	}
 }

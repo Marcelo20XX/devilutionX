@@ -158,6 +158,7 @@ set(devilutionx_assets
   gendata/cutportrw.pcx
   gendata/cutstartw.pcx
   ui_art/creditsw.pcx
+  ui_art/heros.pcx
   ui_art/hf_titlew.pcx
   ui_art/mainmenuw.pcx
   ui_art/supportw.pcx)

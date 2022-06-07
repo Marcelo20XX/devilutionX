@@ -73,7 +73,7 @@ bool GetSpellListSelection(spell_id &pSpell, spell_type &pSplType)
 		if (spellListItem.isSelected) {
 			pSpell = spellListItem.id;
 			pSplType = spellListItem.type;
-			if (myPlayer._pClass == HeroClass::Monk && spellListItem.id == SPL_SEARCH)
+			if (myPlayer._pClass == HeroClass::Monk && spellListItem.id == SPL_IDENTIFY)
 				pSplType = RSPLTYPE_SKILL;
 			return true;
 		}
